@@ -17,7 +17,6 @@ from under_pipeline.io_utils import (
 
 # These should point to where you place the corresponding legacy functions
 from under_pipeline.get_3d_UG import (
-    warp_left_disparity,
     triangulate_multi_db,
     compare_disparity_maps,
     check_multi_stereo_entry,
@@ -25,6 +24,7 @@ from under_pipeline.get_3d_UG import (
     insert_point_cloud_entry,
     update_pc_status_in_ms,
 )
+from under_pipeline.stereo import warp_left_disparity
 from under_pipeline.db_core import insert_multi_stereo
 from under_pipeline.rectify import rectify_stereopair
 from under_pipeline.disp_cache import get_save_disp_rect_params

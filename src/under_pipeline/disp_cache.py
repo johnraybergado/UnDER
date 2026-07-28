@@ -17,8 +17,12 @@ from under_pipeline.db_core import (
     insert_image_pair_to_db,
 )
 from under_pipeline.io_utils import write_float32_tiff
-# from under_pipeline.stereo import get_left_disparity_db
-from under_pipeline.get_3d_UG import get_left_disparity_db
+from under_pipeline.get_3d_UG import (
+    calc_disp_reduction_db,
+    shift_right_image,
+    subset_image,
+    stitch_disparity,
+)
 from under_pipeline.rectify import rectify_stereopair
 
 
@@ -89,11 +93,8 @@ def get_save_disp_rect_params(
     elif pair_in_db and not pair_on_disk:
         # Case 2: DB record exists but TIFF was deleted / never written ──────
         print(f"Image pair {left_fname}, {right_fname} found in DB but not on disk.")
-        disp_arrays_l, rect_params_l = get_left_disparity_db(
-            left, right,
-            config.downsample_factor,
-            config.disparity_method,
-            dbname,
+        disp_arrays_l, rect_params_l = _compute_left_disparity_db(
+            left, right, dbname, config, db_image_params_fn,
         )
         disp_array_l = disp_arrays_l[:, :, 0]
         write_float32_tiff(np.expand_dims(disp_array_l, axis=-1), disp_path_l)
@@ -116,11 +117,8 @@ def get_save_disp_rect_params(
     else:
         # Case 4: nothing cached — full computation ──────────────────────────
         print(f"Image pair {left_fname}, {right_fname} not found on disk or in DB.")
-        disp_arrays_l, rect_params_l = get_left_disparity_db(
-            left, right,
-            config.downsample_factor,
-            config.disparity_method,
-            dbname,
+        disp_arrays_l, rect_params_l = _compute_left_disparity_db(
+            left, right, dbname, config, db_image_params_fn,
         )
         insert_image_pair_to_db(left_fname, right_fname, rect_params_l, dbname)
         disp_array_l = disp_arrays_l[:, :, 0]
@@ -136,3 +134,107 @@ def get_save_disp_rect_params(
         rect_params_l = get_rect_params(left_fname, right_fname, dbname)
 
     return disp_array_l, rect_params_l
+
+
+def _rectify_and_reduce_disparity(
+    left: dict,
+    right: dict,
+    dbname: str,
+    config: UseGeoDataset1Config,
+    db_image_params_fn: Callable[[str], dict],
+) -> Tuple[np.ndarray, np.ndarray, dict, int]:
+    """Rectify a stereo pair and reduce the right image's disparity offset.
+
+    Wraps ``rectify_stereopair`` plus the legacy disparity-shift reduction
+    (``calc_disp_reduction_db`` / ``shift_right_image``, still defined in
+    ``get_3d_UG.py``) so callers get rectified, shift-corrected images ready
+    for tiling and disparity estimation.
+
+    Returns
+    -------
+    rect_img1 : np.ndarray
+        Rectified left image.
+    shifted_rect_img2 : np.ndarray
+        Rectified right image, shifted via baseline depth based method.
+    rect_params : dict
+        Rectification parameters (H1, H2, H_shift, K, R).
+    disparity_shift : int
+        Pixel shift applied to the right image; must be added back to the
+        raw disparity output to recover true disparities.
+    """
+    left_fname = left["fname"]
+    right_fname = right["fname"]
+
+    left_img_params = db_image_params_fn(left_fname)
+    right_img_params = db_image_params_fn(right_fname)
+
+    print(f"Rectifying {left_fname} and {right_fname} image pair...")
+    img_rect_params_dict = rectify_stereopair(
+        left["array"], right["array"],
+        left_img_params, right_img_params,
+        config.downsample_factor,
+    )
+    rect_img1, rect_img2 = img_rect_params_dict["image_pairs"]
+    rect_params = img_rect_params_dict["rect_params"]
+
+    # Persist rectified images for debugging/inspection, matching legacy behavior.
+    rect_img1_path = config.tmp_disp_warp / f"{left_fname[:-4]}{right_fname[:-4]}_rectified.tif"
+    write_float32_tiff(rect_img1, rect_img1_path)
+    rect_img2_path = config.tmp_disp_warp / f"{right_fname[:-4]}{left_fname[:-4]}_rectified.tif"
+    write_float32_tiff(rect_img2, rect_img2_path)
+
+    print("Reducing absolute disparity values...")
+    disparity_shift = calc_disp_reduction_db(
+        left_img_params, right_img_params, rect_params, dbname,
+    )
+    shifted_rect_img2 = shift_right_image(rect_img2, -disparity_shift)
+
+    return rect_img1, shifted_rect_img2, rect_params, disparity_shift
+
+
+def _compute_left_disparity_db(
+    left: dict,
+    right: dict,
+    dbname: str,
+    config: UseGeoDataset1Config,
+    db_image_params_fn: Callable[[str], dict],
+) -> Tuple[np.ndarray, dict]:
+    """Compute the left disparity map for a DB-backed stereo pair.
+
+    Replaces the legacy, monolithic ``get_left_disparity_db`` from
+    ``get_3d_UG.py``. Rectification and disparity-shift reduction now live
+    in ``_rectify_and_reduce_disparity``; tiling (``subset_image``) and
+    disparity stitching (``stitch_disparity``) remain legacy imports from
+    ``get_3d_UG.py`` pending their own refactor.
+
+    Returns
+    -------
+    disp_arrays : np.ndarray
+        (H, W, 2) array — band 0 is left disparity, band 1 is the
+        method-specific validity/mask channel.
+    rect_params : dict
+        Rectification parameters for the pair.
+    """
+    rect_img1, shifted_rect_img2, rect_params, disparity_shift = (
+        _rectify_and_reduce_disparity(left, right, dbname, config, db_image_params_fn)
+    )
+
+    print("Subsetting image pairs...")
+    img1_subsets = subset_image(
+        rect_img1,
+        config.subset_height, config.subset_width,
+        config.subset_height_overlap, config.subset_width_overlap,
+    )
+    img2_subsets = subset_image(
+        shifted_rect_img2,
+        config.subset_height, config.subset_width,
+        config.subset_height_overlap, config.subset_width_overlap,
+    )
+
+    print("Calculating left disparity image...")
+    disp_arrays = stitch_disparity(rect_img1, img1_subsets, img2_subsets, config.disparity_method)
+
+    # Shift disparity values back to their true (unreduced) scale.
+    disp_arrays[:, :, 0] = disp_arrays[:, :, 0] + disparity_shift
+
+    return disp_arrays, rect_params

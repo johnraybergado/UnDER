@@ -6,16 +6,9 @@ from typing import Dict, Tuple
 
 import numpy as np
 from osgeo import gdal  # type: ignore
+from skimage import transform
 
-from under_pipeline.config import UseGeoDataset1Config
-from under_pipeline.db_core import (
-    check_pair_records,
-    get_img_params_db,
-    insert_image_pair_to_db,
-    get_rect_params,
-)
 from under_pipeline.io_utils import write_float32_tiff
-from under_pipeline.rectify import rectify_stereopair
 from under_pipeline.get_3d_UG import write_disparity_PASMNet  # adjust if your function name differs
 # If you have an SGM helper, import it:
 # from .sgm_disparity import writedisparitySGM
@@ -88,188 +81,229 @@ def _write_disparity_sgm(
     raise NotImplementedError("SGM disparity path not yet wired in stereo.py")
 
 
-def get_save_disp_rect_params(
-    left: Dict[str, object],
-    right: Dict[str, object],
-    config: UseGeoDataset1Config,
+# def get_save_disp_rect_params(
+#     left: Dict[str, object],
+#     right: Dict[str, object],
+#     config: UseGeoDataset1Config,
+# ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+#     """
+#     Get (or compute and save) left disparity and rectification parameters for an image pair.
+
+#     Parameters
+#     ----------
+#     left : dict
+#         {"fname": <filename>, "array": <(H, W, C) ndarray>} for the base image.
+#     right : dict
+#         Same structure for the side image.
+#     config : UseGeoDataset1Config
+#         Global configuration providing paths and stereo settings.
+
+#     Returns
+#     -------
+#     disp_array_left : np.ndarray
+#         Left disparity array in rectified space (H, W).
+#     rect_params_left : dict
+#         Rectification parameters dictionary (H1, H2, H_shift, K, R).
+#     """
+#     left_name = str(left["fname"])
+#     right_name = str(right["fname"])
+
+#     # Where rectified disparity for left view is stored
+#     disp_fname_left = f"{left_name[:-4]}{right_name[:-4]}.tif"
+#     disp_path_left = config.tmp_disp_warp / disp_fname_left
+
+#     pair_in_db, pair_in_disk = check_pair_records(
+#         left_name=left_name,
+#         right_name=right_name,
+#         db_name=config.db_name,
+#         disp_dir=str(config.tmp_disp_warp),
+#     )
+
+#     rect_params_left: Dict[str, np.ndarray] | None = None
+#     disp_array_left: np.ndarray | None = None
+
+#     if pair_in_disk and pair_in_db:
+#         print(f"image pair {left_name}, {right_name} found both in disk and db")
+#         disp_img = gdal.Open(str(disp_path_left))
+#         disp_array_left = disp_img.ReadAsArray().astype(np.float32)
+
+#     elif pair_in_db and not pair_in_disk:
+#         print(f"image pair {left_name}, {right_name} found in db but not in disk")
+#         # Fetch rect params and recompute only disparity
+#         rect_params_left = get_rect_params(left_name, right_name, config.db_name)
+#         left_params = get_img_params_db(left_name, config.db_name)
+#         right_params = get_img_params_db(right_name, config.db_name)
+
+#         print(f"rectifying {left_name} and {right_name} image pair...")
+#         rectified = rectify_stereopair(
+#             np.asarray(left["array"]),
+#             np.asarray(right["array"]),
+#             left_params,
+#             right_params,
+#             config.downsample_factor,
+#         )
+#         rect_img1, rect_img2 = rectified["image_pairs"]
+
+#         if config.disparity_method == "CNN":
+#             if config.model_path is None:
+#                 raise ValueError("config.model_path must be set for CNN disparity")
+#             disp_array_left = _write_disparity_cnn(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 model_path=config.model_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+#         else:
+#             if config.sgm_config_path is None:
+#                 raise ValueError("config.sgm_config_path must be set for SGM disparity")
+#             disp_array_left = _write_disparity_sgm(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 sgm_config_path=config.sgm_config_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+
+#         write_float32_tiff(
+#             np.expand_dims(disp_array_left, axis=-1),
+#             disp_path_left,
+#         )
+
+#     elif pair_in_disk and not pair_in_db:
+#         print(f"image pair {left_name}, {right_name} found in disk but not in db")
+#         left_params = get_img_params_db(left_name, config.db_name)
+#         right_params = get_img_params_db(right_name, config.db_name)
+
+#         print(f"rectifying {left_name} and {right_name} image pair...")
+#         rectified = rectify_stereopair(
+#             np.asarray(left["array"]),
+#             np.asarray(right["array"]),
+#             left_params,
+#             right_params,
+#             config.downsample_factor,
+#         )
+#         rect_img1, rect_img2 = rectified["image_pairs"]
+#         rect_params = rectified["rect_params"]
+
+#         insert_image_pair_to_db(left_name, right_name, rect_params, config.db_name)
+
+#         if config.disparity_method == "CNN":
+#             if config.model_path is None:
+#                 raise ValueError("config.model_path must be set for CNN disparity")
+#             disp_array_left = _write_disparity_cnn(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 model_path=config.model_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+#         else:
+#             if config.sgm_config_path is None:
+#                 raise ValueError("config.sgm_config_path must be set for SGM disparity")
+#             disp_array_left = _write_disparity_sgm(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 sgm_config_path=config.sgm_config_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+
+#         write_float32_tiff(
+#             np.expand_dims(disp_array_left, axis=-1),
+#             disp_path_left,
+#         )
+
+#     else:
+#         print(f"image pair {left_name}, {right_name} not found in disk and db")
+#         left_params = get_img_params_db(left_name, config.db_name)
+#         right_params = get_img_params_db(right_name, config.db_name)
+
+#         print(f"rectifying {left_name} and {right_name} image pair...")
+#         rectified = rectify_stereopair(
+#             np.asarray(left["array"]),
+#             np.asarray(right["array"]),
+#             left_params,
+#             right_params,
+#             config.downsample_factor,
+#         )
+#         rect_img1, rect_img2 = rectified["image_pairs"]
+#         rect_params_left = rectified["rect_params"]
+
+#         insert_image_pair_to_db(left_name, right_name, rect_params_left, config.db_name)
+
+#         if config.disparity_method == "CNN":
+#             if config.model_path is None:
+#                 raise ValueError("config.model_path must be set for CNN disparity")
+#             disp_array_left = _write_disparity_cnn(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 model_path=config.model_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+#         else:
+#             if config.sgm_config_path is None:
+#                 raise ValueError("config.sgm_config_path must be set for SGM disparity")
+#             disp_array_left = _write_disparity_sgm(
+#                 rect_img1=rect_img1,
+#                 rect_img2=rect_img2,
+#                 tmp_disp_root=config.tmp_disp_root,
+#                 sgm_config_path=config.sgm_config_path,
+#                 base_name=f"{left_name[:-4]}_{right_name[:-4]}",
+#             )
+
+#         write_float32_tiff(
+#             np.expand_dims(disp_array_left, axis=-1),
+#             disp_path_left,
+#         )
+
+#     if disp_array_left is None:
+#         disp_img = gdal.Open(str(disp_path_left))
+#         disp_array_left = disp_img.ReadAsArray().astype(np.float32)
+
+#     if rect_params_left is None:
+#         rect_params_left = get_rect_params(left_name, right_name, config.db_name)
+
+#     return disp_array_left, rect_params_left
+
+
+def warp_left_disparity(
+    disp_array: np.ndarray,
+    output_shape: Tuple[int, int],
+    rect_params: Dict[str, np.ndarray],
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
     """
-    Get (or compute and save) left disparity and rectification parameters for an image pair.
+    Warp a rectified left disparity map back into the original
+    (unrectified) left-image coordinate space.
 
     Parameters
     ----------
-    left : dict
-        {"fname": <filename>, "array": <(H, W, C) ndarray>} for the base image.
-    right : dict
-        Same structure for the side image.
-    config : UseGeoDataset1Config
-        Global configuration providing paths and stereo settings.
+    disp_array : np.ndarray
+        Disparity map (H, W) in rectified space.
+    output_shape : tuple of int
+        Shape (rows, cols) of the original, unrectified left image.
+    rect_params : dict
+        Rectification parameters as returned by ``rectify_stereopair``
+        (keys: ``H1``, ``H2``, ``H_shift``, ``K``, ``R``).
 
     Returns
     -------
-    disp_array_left : np.ndarray
-        Left disparity array in rectified space (H, W).
-    rect_params_left : dict
-        Rectification parameters dictionary (H1, H2, H_shift, K, R).
+    disp_array_orig : np.ndarray
+        Disparity map warped into original left-image space.
+    mappings : dict
+        ``{"left": left_mapping, "right": right_mapping}`` — homographies
+        mapping original image space to rectified space, needed downstream
+        for triangulation coordinate transforms.
     """
-    left_name = str(left["fname"])
-    right_name = str(right["fname"])
+    H1 = rect_params["H1"]
+    H2 = rect_params["H2"]
+    H_shift = rect_params["H_shift"]
 
-    # Where rectified disparity for left view is stored
-    disp_fname_left = f"{left_name[:-4]}{right_name[:-4]}.tif"
-    disp_path_left = config.tmp_disp_warp / disp_fname_left
+    left_mapping = H1 @ H_shift
+    right_mapping = H2 @ H_shift
 
-    pair_in_db, pair_in_disk = check_pair_records(
-        left_name=left_name,
-        right_name=right_name,
-        db_name=config.db_name,
-        disp_dir=str(config.tmp_disp_warp),
-    )
+    tform = transform.ProjectiveTransform(matrix=np.linalg.inv(left_mapping))
+    disp_array_orig = transform.warp(disp_array, tform, output_shape=output_shape)
 
-    rect_params_left: Dict[str, np.ndarray] | None = None
-    disp_array_left: np.ndarray | None = None
-
-    if pair_in_disk and pair_in_db:
-        print(f"image pair {left_name}, {right_name} found both in disk and db")
-        disp_img = gdal.Open(str(disp_path_left))
-        disp_array_left = disp_img.ReadAsArray().astype(np.float32)
-
-    elif pair_in_db and not pair_in_disk:
-        print(f"image pair {left_name}, {right_name} found in db but not in disk")
-        # Fetch rect params and recompute only disparity
-        rect_params_left = get_rect_params(left_name, right_name, config.db_name)
-        left_params = get_img_params_db(left_name, config.db_name)
-        right_params = get_img_params_db(right_name, config.db_name)
-
-        print(f"rectifying {left_name} and {right_name} image pair...")
-        rectified = rectify_stereopair(
-            np.asarray(left["array"]),
-            np.asarray(right["array"]),
-            left_params,
-            right_params,
-            config.downsample_factor,
-        )
-        rect_img1, rect_img2 = rectified["image_pairs"]
-
-        if config.disparity_method == "CNN":
-            if config.model_path is None:
-                raise ValueError("config.model_path must be set for CNN disparity")
-            disp_array_left = _write_disparity_cnn(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                model_path=config.model_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-        else:
-            if config.sgm_config_path is None:
-                raise ValueError("config.sgm_config_path must be set for SGM disparity")
-            disp_array_left = _write_disparity_sgm(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                sgm_config_path=config.sgm_config_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-
-        write_float32_tiff(
-            np.expand_dims(disp_array_left, axis=-1),
-            disp_path_left,
-        )
-
-    elif pair_in_disk and not pair_in_db:
-        print(f"image pair {left_name}, {right_name} found in disk but not in db")
-        left_params = get_img_params_db(left_name, config.db_name)
-        right_params = get_img_params_db(right_name, config.db_name)
-
-        print(f"rectifying {left_name} and {right_name} image pair...")
-        rectified = rectify_stereopair(
-            np.asarray(left["array"]),
-            np.asarray(right["array"]),
-            left_params,
-            right_params,
-            config.downsample_factor,
-        )
-        rect_img1, rect_img2 = rectified["image_pairs"]
-        rect_params = rectified["rect_params"]
-
-        insert_image_pair_to_db(left_name, right_name, rect_params, config.db_name)
-
-        if config.disparity_method == "CNN":
-            if config.model_path is None:
-                raise ValueError("config.model_path must be set for CNN disparity")
-            disp_array_left = _write_disparity_cnn(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                model_path=config.model_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-        else:
-            if config.sgm_config_path is None:
-                raise ValueError("config.sgm_config_path must be set for SGM disparity")
-            disp_array_left = _write_disparity_sgm(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                sgm_config_path=config.sgm_config_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-
-        write_float32_tiff(
-            np.expand_dims(disp_array_left, axis=-1),
-            disp_path_left,
-        )
-
-    else:
-        print(f"image pair {left_name}, {right_name} not found in disk and db")
-        left_params = get_img_params_db(left_name, config.db_name)
-        right_params = get_img_params_db(right_name, config.db_name)
-
-        print(f"rectifying {left_name} and {right_name} image pair...")
-        rectified = rectify_stereopair(
-            np.asarray(left["array"]),
-            np.asarray(right["array"]),
-            left_params,
-            right_params,
-            config.downsample_factor,
-        )
-        rect_img1, rect_img2 = rectified["image_pairs"]
-        rect_params_left = rectified["rect_params"]
-
-        insert_image_pair_to_db(left_name, right_name, rect_params_left, config.db_name)
-
-        if config.disparity_method == "CNN":
-            if config.model_path is None:
-                raise ValueError("config.model_path must be set for CNN disparity")
-            disp_array_left = _write_disparity_cnn(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                model_path=config.model_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-        else:
-            if config.sgm_config_path is None:
-                raise ValueError("config.sgm_config_path must be set for SGM disparity")
-            disp_array_left = _write_disparity_sgm(
-                rect_img1=rect_img1,
-                rect_img2=rect_img2,
-                tmp_disp_root=config.tmp_disp_root,
-                sgm_config_path=config.sgm_config_path,
-                base_name=f"{left_name[:-4]}_{right_name[:-4]}",
-            )
-
-        write_float32_tiff(
-            np.expand_dims(disp_array_left, axis=-1),
-            disp_path_left,
-        )
-
-    if disp_array_left is None:
-        disp_img = gdal.Open(str(disp_path_left))
-        disp_array_left = disp_img.ReadAsArray().astype(np.float32)
-
-    if rect_params_left is None:
-        rect_params_left = get_rect_params(left_name, right_name, config.db_name)
-
-    return disp_array_left, rect_params_left
+    return disp_array_orig, {"left": left_mapping, "right": right_mapping}
