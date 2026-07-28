@@ -1,0 +1,12 @@
+{
+  "include": ["."],
+  "typeCheckingMode": "standard",
+
+  "strict": [
+    "./**"
+  ],
+
+  "diagnosticSeverityOverrides": {
+    "reportPrivateImportUsage": "information"
+  }
+}

@@ -1,0 +1,9 @@
+python -m scripts.run_usegeo_pipeline ^
+  --data-root "D:\Workspace\UT_postdoc\00_research\30_dataset\Use_Geo\Dataset-1" ^
+  --tmp-root "D:\Workspace\UT_postdoc\40_experiments\03_use_geo\98_tmp_db" ^
+  --las-path "D:\Workspace\UT_postdoc\00_research\30_dataset\Use_Geo\Dataset-1\DIM_after_adjustment_dataset_C.las" ^
+  --multiview-dicts "D:\Workspace\UT_postdoc\40_experiments\03_use_geo\98_tmp_db\multiview_dicts.list" ^
+  --db-name "tmp_finetune_ug1" ^
+  --disparity-method "CNN" ^
+  --disp-diff-threshold 0.9 ^
+  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg"
