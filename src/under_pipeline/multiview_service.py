@@ -1,3 +1,12 @@
+"""
+Thin service wrapper around multiview_core.mvs_reconstruct_db.
+
+Exists so the pipeline orchestration layer (core_pipeline.py) depends on
+an injectable class (config + db_client in, reconstruct() out) rather
+than importing a free function directly — keeps core_pipeline.py
+testable/mockable without needing to know multiview_core's internals.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, List

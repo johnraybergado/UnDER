@@ -1,3 +1,15 @@
+"""
+Top-level orchestration of the UnDER reconstruction pipeline.
+
+Owns the run order: initialize DB -> load multiview_dicts.list -> filter
+to the configured base image(s) -> reconstruct each via
+MultiviewReconstructor -> log progress/timing. Contains no geometry,
+disparity, or DB-query logic itself — every step delegates to a
+lower-level module (db_client, multiview_service). This is the file to
+read first to understand pipeline flow; read the others to understand
+what each step actually does.
+"""
+
 from __future__ import annotations
 
 import pickle

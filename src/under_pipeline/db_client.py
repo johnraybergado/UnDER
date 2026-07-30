@@ -1,3 +1,14 @@
+"""
+Object-oriented wrapper around db_core's psycopg2-based functions.
+
+Exists so the rest of the pipeline depends on an UnderDbClient instance
+(constructed once with a db_name) instead of passing db_name as a string
+through every function call and importing db_core directly everywhere.
+Pure delegation layer — no query logic lives here, only db_core calls.
+
+TODO: clean up all db_name parameters.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List

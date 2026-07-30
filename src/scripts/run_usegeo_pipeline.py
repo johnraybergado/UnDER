@@ -62,6 +62,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional base image filename to process only that image.",
     )
+    parser.add_argument(
+        "--model-path",
+        type=str,
+        default=None,
+        help="Optional model path for CNN-based disparity estimation.",
+    )
     return parser.parse_args()
 
 
@@ -80,6 +86,7 @@ def main() -> None:
         disp_diff_threshold=args.disp_diff_threshold,
         multiview_dict_path=args.multiview_dicts,
         base_image_filter=args.base_image_filter,
+        model_path=args.model_path
     )
 
     db_client = UnderDbClient(db_name=config.db_name)

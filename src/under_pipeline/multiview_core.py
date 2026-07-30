@@ -1,3 +1,21 @@
+"""
+Multiview reconstruction for one base image against multiple side images.
+
+For each side image: computes disparity + right-left consistency (RLCC)
+mask via ``stereo.py``/``disp_cache.py`` helpers. Then aggregates across
+all side images to triangulate a single point cloud for the base image,
+writes it to PLY, and manages the multi_stereo/point_cloud DB bookkeeping
+(existence checks, inserts, disk/DB consistency reconciliation).
+
+Boundary: this is the "more than one pair at once" layer — anything that
+only needs a single (left, right) pair belongs in ``stereo.py`` or
+``disp_cache.py`` instead. Called by ``multiview_service.py``, which
+just adapts this function to the service/DI style used elsewhere in the
+pipeline.
+
+TODO: clean up all db_name parameters.
+"""
+
 from __future__ import annotations
 
 import time

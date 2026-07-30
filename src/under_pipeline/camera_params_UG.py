@@ -1,3 +1,14 @@
+"""
+Builds per-image camera parameter dictionaries (position, rotation,
+camera matrix, distortion) from the UseGeo metric-calibration file, plus
+derived geographic footprints (geobounds) and GSD estimation.
+
+Boundary: this is where raw calibration/orientation data becomes the
+CameraParams dicts every other module consumes (rectify.py, stereo.py,
+db_core.py's image_param table). Runs once at DB-init time
+(db_core.init_db); nothing here talks to the database directly.
+"""
+
 from __future__ import annotations
 
 import math

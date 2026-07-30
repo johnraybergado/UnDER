@@ -1,5 +1,20 @@
 """
-disp_cache.py  —  Disparity result caching / persistence layer.
+Disparity result caching / persistence layer for stereo pairs.
+
+Given a (left, right) pair, checks whether rectification params and the
+left disparity map already exist in the DB and/or on disk, and only
+recomputes what's missing (see ``get_save_disp_rect_params`` for the
+four cache-state cases). Computation itself is delegated to
+``stereo.py`` (rectified-original space warping + disparity-shift reduction)
+and ``disp_utils.py`` (tiling + disparity stitching); this module owns the
+caching decisions and DB/disk read-or-write orchestration around them.
+
+Boundary: single-pair caching only. Multiview aggregation across
+several side images, PLY writing, and multi_stereo/point_cloud
+bookkeeping live in ``multiview_core.py``.
+
+TODO: clean up all db_name parameters.
+TODO: remove db_core import.
 """
 
 from __future__ import annotations
@@ -16,13 +31,9 @@ from under_pipeline.db_core import (
     get_rect_params,
     insert_image_pair_to_db,
 )
-from under_pipeline.io_utils import write_float32_tiff
-from under_pipeline.get_3d_UG import (
-    calc_disp_reduction_db,
-    shift_right_image,
-    subset_image,
-    stitch_disparity,
-)
+from under_pipeline.io_utils import write_float32_tiff, tile_image
+from under_pipeline.stereo import calc_disp_reduction_db, shift_right_image
+from under_pipeline.disp_utils import stitch_disparity
 from under_pipeline.rectify import rectify_stereopair
 
 
@@ -183,9 +194,15 @@ def _rectify_and_reduce_disparity(
     rect_img2_path = config.tmp_disp_warp / f"{right_fname[:-4]}{left_fname[:-4]}_rectified.tif"
     write_float32_tiff(rect_img2, rect_img2_path)
 
+    # print("Reducing absolute disparity values...")
+    # disparity_shift = calc_disp_reduction_db(
+    #     left_img_params, right_img_params, rect_params, dbname,
+    # )
+    # shifted_rect_img2 = shift_right_image(rect_img2, -disparity_shift)
     print("Reducing absolute disparity values...")
     disparity_shift = calc_disp_reduction_db(
         left_img_params, right_img_params, rect_params, dbname,
+        config.disparity_shift_ratio,
     )
     shifted_rect_img2 = shift_right_image(rect_img2, -disparity_shift)
 
@@ -219,22 +236,44 @@ def _compute_left_disparity_db(
         _rectify_and_reduce_disparity(left, right, dbname, config, db_image_params_fn)
     )
 
+    # print("Subsetting image pairs...")
+    # img1_subsets = subset_image(
+    #     rect_img1,
+    #     config.subset_height, config.subset_width,
+    #     config.subset_height_overlap, config.subset_width_overlap,
+    # )
+    # img2_subsets = subset_image(
+    #     shifted_rect_img2,
+    #     config.subset_height, config.subset_width,
+    #     config.subset_height_overlap, config.subset_width_overlap,
+    # )
+
+    # print("Calculating left disparity image...")
+    # disp_arrays = stitch_disparity(rect_img1, img1_subsets, img2_subsets, config.disparity_method)
+
+    # # Shift disparity values back to their true (unreduced) scale.
+    # disp_arrays[:, :, 0] = disp_arrays[:, :, 0] + disparity_shift
+
     print("Subsetting image pairs...")
-    img1_subsets = subset_image(
+    img1_subsets = tile_image(
         rect_img1,
         config.subset_height, config.subset_width,
         config.subset_height_overlap, config.subset_width_overlap,
     )
-    img2_subsets = subset_image(
+    img2_subsets = tile_image(
         shifted_rect_img2,
         config.subset_height, config.subset_width,
         config.subset_height_overlap, config.subset_width_overlap,
     )
 
     print("Calculating left disparity image...")
-    disp_arrays = stitch_disparity(rect_img1, img1_subsets, img2_subsets, config.disparity_method)
-
-    # Shift disparity values back to their true (unreduced) scale.
-    disp_arrays[:, :, 0] = disp_arrays[:, :, 0] + disparity_shift
+    left_fname = left["fname"]
+    right_fname = right["fname"]
+    pair_name = f"{left_fname[:-4]}{right_fname[:-4]}"
+    disp_arrays = stitch_disparity(
+        rect_img1, img1_subsets, img2_subsets, config.disparity_method,
+        config.subset_height_overlap, config.subset_width_overlap,
+        config, pair_name,
+    )
 
     return disp_arrays, rect_params

@@ -1,4 +1,10 @@
-﻿import os
+﻿""""Legacy monolith being incrementally migrated into stereo.py
+/ disp_cache.py / disp_utils.py / multiview_core.py / db_core.py.
+Remaining functions here are either (a) not yet migrated, or
+(b) intentionally still depended on by not-yet-migrated code
+elsewhere. Check call sites before deleting anything."""
+
+import os
 from io import StringIO
 import time
 # import math

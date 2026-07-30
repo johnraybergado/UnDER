@@ -1,3 +1,14 @@
+"""
+Stereo rectification: computes the pair of homographies that warp two
+images captured from different camera poses onto a common, row-aligned
+("stereo normal") image plane, plus the shifted-bounds correction so all
+warped pixel coordinates stay positive (redefine_bounds).
+
+Boundary: pure geometry, single pair, no I/O and no DB access — takes
+image arrays and camera params in, returns warped arrays and rect_params
+out. Called by stereo.py/disp_cache.py; never calls into them.
+"""
+
 from __future__ import annotations
 
 import math

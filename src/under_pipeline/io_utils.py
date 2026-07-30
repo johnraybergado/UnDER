@@ -1,3 +1,16 @@
+"""
+Generic file I/O and array utilities with no stereo/pipeline-specific
+semantics: writing GeoTIFFs (uint8/float32), writing PLY point clouds
+(basic XYZRGB and the UnDER FPC format), tiling an image array into
+overlapping subsets, and loading GDAL rasters / PLY files back in.
+
+Boundary: functions here don't know what a disparity map, rectification,
+or a base/side image is — they just move arrays and files around. Any
+function that needs to know pipeline concepts (e.g. "this is the left
+image of a stereo pair") belongs in stereo.py, disp_utils.py, or
+multiview_core.py instead.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

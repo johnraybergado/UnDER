@@ -5,5 +5,6 @@ python -m scripts.run_usegeo_pipeline ^
   --multiview-dicts "D:\Workspace\UT_postdoc\40_experiments\03_use_geo\98_tmp_db\multiview_dicts.list" ^
   --db-name "tmp_finetune_ug1" ^
   --disparity-method "CNN" ^
+  --model-path "D:\Workspace\UT_postdoc\80_tools\00_dronemappy\dronemappy\pretrained\PASMnet_KITTI2015_epoch80.pth" ^
   --disp-diff-threshold 0.9 ^
   --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg"

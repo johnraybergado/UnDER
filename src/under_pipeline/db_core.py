@@ -1,3 +1,14 @@
+"""
+Raw psycopg2 DB access for the UnDER pipeline: schema creation, and all
+read/write queries against the globals, image, image_param, image_pair,
+rectification_param, multi_stereo, and point_cloud tables.
+
+Boundary: this is the only module that should contain SQL or open a
+psycopg2 connection directly. Callers go through db_client.UnderDbClient
+rather than importing this module, except within db_client.py itself and
+a few remaining legacy call sites in get_3d_UG.py pending migration.
+"""
+
 from __future__ import annotations
 
 import os

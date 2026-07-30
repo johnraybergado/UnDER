@@ -1,3 +1,15 @@
+"""
+Single source of truth for pipeline configuration: paths, DB name, EPSG,
+disparity method/model/threshold settings, tiling dimensions, and
+multiview run parameters. All derived tmp-directory paths (tmp_ply,
+tmp_disp_orig, etc.) are computed once in __post_init__ from tmp_root.
+
+Boundary: no logic beyond path derivation lives here — every other
+module takes a UseGeoDataset1Config instance as a parameter rather than
+hardcoding paths/constants itself (the pattern the legacy get_3d_UG.py
+module-level globals are being migrated away from).
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -32,7 +44,8 @@ class UseGeoDataset1Config:
     disparity_method: str = "CNN"     # "CNN" or "SGM"
     model_path: Path | None = None    # PASMNet model path
     mask_method: str | None = "RLCC"  # "RLCC", "FM", or None
-    disp_diff_threshold: float = 0.9  # DISP_DIFF_THRESHOLD
+    disp_diff_threshold: float = 0.75  # DISP_DIFF_THRESHOLD
+    disparity_shift_ratio: float = 0.9  # DISPARITY_SHIFT_RATIO
 
     # Tiling / subsets
     subset_height_overlap: int = 512
