@@ -35,7 +35,6 @@ import torch.backends.cudnn as cudnn
 from models.PASMnet import PASMnet
 from under_pipeline.io_utils import write_float32_tiff
 from under_pipeline.db_core import get_global_param
-from under_pipeline.get_3d_UG import calc_P_matrix
 # If you have an SGM helper, import it:
 # from .sgm_disparity import writedisparitySGM
 
@@ -380,3 +379,89 @@ def _run_pasmnet_pair(
         mask_array = torch.clamp(mask.squeeze(), 0).cpu().numpy()
 
     return disp_array, mask_array
+
+
+def calc_P_matrix(img_params: dict) -> np.ndarray:
+    """
+    Build a camera's 3x4 projection matrix P = K [R | t], where t = -R @ C.
+
+    Parameters
+    ----------
+    img_params : dict
+        Camera parameter dictionary with keys ``camera_matrix``,
+        ``rotation_matrix``, ``X``, ``Y``, ``Z`` (as returned by
+        ``UnderDbClient.get_image_params``).
+
+    Returns
+    -------
+    np.ndarray
+        (3, 4) projection matrix mapping homogeneous world coordinates
+        to homogeneous image coordinates.
+    """
+    K = img_params["camera_matrix"]
+    R = img_params["rotation_matrix"]
+    C = np.array(
+        [[img_params["X"]], [img_params["Y"]], [img_params["Z"]]],
+        dtype=np.float64,
+    )
+    t = -R @ C
+    R_t = np.zeros((3, 4), dtype=np.float64)
+    R_t[:, :-1] = R
+    R_t[:, -1] = t[:, 0]
+    return K @ R_t
+
+
+def compare_disparity_maps(lr_disp_array: np.ndarray, rl_disp_array: np.ndarray) -> np.ndarray:
+    """
+    Compute right-left consistency deviations between two disparity maps.
+
+    For each pixel in the left-to-right (LR) disparity map, looks up the
+    corresponding pixel in the right-to-left (RL) disparity map at the
+    LR-implied shifted location, and returns the difference. Small
+    deviations indicate the two independently estimated disparities
+    agree; large deviations flag likely occlusion/error and are used
+    downstream (``multiview_core._compute_right_left_mask``) to build
+    the RLCC validity mask.
+
+    Parameters
+    ----------
+    lr_disp_array : np.ndarray
+        (H, W) disparity map estimated left-to-right (base image left).
+    rl_disp_array : np.ndarray
+        (H, W) disparity map estimated right-to-left (base image right),
+        same shape as ``lr_disp_array``.
+
+    Returns
+    -------
+    np.ndarray
+        (H, W) array of per-pixel deviations between the LR disparity
+        and the RL disparity sampled at the LR-shifted location.
+
+    Note
+    ----
+    Ported as-is from the legacy implementation, including its
+    pixel-by-pixel Python loop and nearest-neighbor (``int()``-truncated)
+    sampling of ``rl_disp_array``. This is O(H*W) in pure Python and will
+    be slow on full-size tiles — a candidate for vectorizing with
+    ``np.take``/fancy indexing later, but left untouched here to avoid
+    changing numerical behavior in the same edit that fixes the import
+    wiring.
+    """
+    ny, nx = lr_disp_array.shape
+    x = np.linspace(0, nx - 1, nx)
+    y = np.linspace(0, ny - 1, ny)
+    xv, yv = np.meshgrid(x, y)
+    disp_values = lr_disp_array.flatten()
+
+    left_disparities = np.stack((xv.flatten(), yv.flatten(), disp_values))
+    right_disparities = left_disparities.copy()
+    right_disparities[0:1, :] = right_disparities[0:1, :] - right_disparities[-1:, :]
+    for i in range(right_disparities.shape[1]):
+        right_disparities[-1:, i] = rl_disp_array[
+            int(right_disparities[1, i]), int(right_disparities[0, i])
+        ]
+
+    deviations = left_disparities[-1, :] - right_disparities[-1, :]
+    deviations = np.reshape(deviations, lr_disp_array.shape)
+
+    return deviations

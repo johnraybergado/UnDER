@@ -18,6 +18,7 @@ from .db_core import (
     get_image_filenames as core_get_image_filenames,
     get_img_params_db as core_get_img_params_db,
     get_global_param as core_get_global_param,
+    delete_point_cloud_for_base_image as core_delete_pc_for_base_image
 )
 
 

@@ -276,4 +276,6 @@ def _compute_left_disparity_db(
         config, pair_name,
     )
 
+    # shift disparity array back to actual disparities
+    disp_arrays[:, :, 0] = disp_arrays[:, :, 0] + disparity_shift
     return disp_arrays, rect_params
