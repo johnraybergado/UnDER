@@ -60,7 +60,7 @@ def parse_args() -> argparse.Namespace:
         "--base-image-filter",
         type=str,
         default=None,
-        help="Optional base image filename to process only that image.",
+        help="Optional base image filename(s) to process. Use comma-separated list for multiple images.",
     )
     parser.add_argument(
         "--model-path",

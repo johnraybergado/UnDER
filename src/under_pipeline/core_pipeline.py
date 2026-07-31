@@ -74,10 +74,13 @@ class UnderReconstructionPipeline:
     def _filter_base_image(self, base_image: str) -> bool:
         """
         Optional base-image filter based on config.base_image_filter.
+        Supports single image (str) or multiple images (comma-separated str).
         """
         if self.config.base_image_filter is None:
             return True
-        return base_image == self.config.base_image_filter
+        # Support comma-separated list of base images
+        filter_images = [img.strip() for img in self.config.base_image_filter.split(",")]
+        return base_image in filter_images
 
     def run_from_multiview_dicts(self) -> None:
         """

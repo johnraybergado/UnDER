@@ -7,4 +7,4 @@ name = "under_pipeline"
 version = "0.1.0"
 
 [tool.setuptools.packages.find]
-include = ["under_pipeline*", "models*", "datasets*"]
+include = ["under_pipeline*", "models*", "scripts*"]

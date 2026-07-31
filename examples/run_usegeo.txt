@@ -1,10 +1,52 @@
-python -m scripts.run_usegeo_pipeline ^
-  --data-root "D:\Workspace\UT_postdoc\00_research\30_dataset\Use_Geo\Dataset-1" ^
-  --tmp-root "D:\Workspace\UT_postdoc\40_experiments\03_use_geo\98_tmp_db" ^
-  --las-path "D:\Workspace\UT_postdoc\00_research\30_dataset\Use_Geo\Dataset-1\DIM_after_adjustment_dataset_C.las" ^
-  --multiview-dicts "D:\Workspace\UT_postdoc\40_experiments\03_use_geo\98_tmp_db\multiview_dicts.list" ^
-  --db-name "tmp_finetune_ug1" ^
-  --disparity-method "CNN" ^
-  --model-path "D:\Workspace\UT_postdoc\80_tools\00_dronemappy\dronemappy\pretrained\PASMnet_KITTI2015_epoch80.pth" ^
-  --disp-diff-threshold 0.75 ^
+# Example commands to run UnDER pipeline on UseGeo Dataset-1
+#
+# The --base-image-filter parameter accepts:
+#   - A single image filename to process only that image
+#   - A comma-separated list of image filenames to process multiple images
+#   - If not specified, all images in multiview_dicts.list will be processed
+
+# Example 1: Process a single base image
+python -m scripts.run_usegeo_pipeline \
+  --data-root "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1" \
+  --tmp-root "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db" \
+  --las-path "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1\\DIM_after_adjustment_dataset_C.las" \
+  --multiview-dicts "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db\\multiview_dicts.list" \
+  --db-name "tmp_finetune_ug1" \
+  --disparity-method "CNN" \
+  --model-path "D:\\Workspace\\UT_postdoc\\80_tools\\00_dronemappy\\dronemappy\\pretrained\\PASMnet_KITTI2015_epoch80.pth" \
+  --disp-diff-threshold 0.75 \
   --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg"
+
+# Example 2: Process two base images (minimum for testing pipeline with multiple images)
+python -m scripts.run_usegeo_pipeline \
+  --data-root "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1" \
+  --tmp-root "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db" \
+  --las-path "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1\\DIM_after_adjustment_dataset_C.las" \
+  --multiview-dicts "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db\\multiview_dicts.list" \
+  --db-name "tmp_finetune_ug1" \
+  --disparity-method "CNN" \
+  --model-path "D:\\Workspace\\UT_postdoc\\80_tools\\00_dronemappy\\dronemappy\\pretrained\\PASMnet_KITTI2015_epoch80.pth" \
+  --disp-diff-threshold 0.75 \
+  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg,2021-04-23_13-17-25_S2223315_DxO.jpg"
+
+# Example 3: Process all images (no filter)
+python -m scripts.run_usegeo_pipeline \
+  --data-root "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1" \
+  --tmp-root "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db" \
+  --las-path "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1\\DIM_after_adjustment_dataset_C.las" \
+  --multiview-dicts "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db\\multiview_dicts.list" \
+  --db-name "tmp_finetune_ug1" \
+  --disparity-method "CNN" \
+  --model-path "D:\\Workspace\\UT_postdoc\\80_tools\\00_dronemappy\\dronemappy\\pretrained\\PASMnet_KITTI2015_epoch80.pth" \
+  --disp-diff-threshold 0.75
+
+# Example 4: Use SGM disparity method (no model path needed)
+python -m scripts.run_usegeo_pipeline \
+  --data-root "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1" \
+  --tmp-root "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db" \
+  --las-path "D:\\Workspace\\UT_postdoc\\00_research\\30_dataset\\Use_Geo\\Dataset-1\\DIM_after_adjustment_dataset_C.las" \
+  --multiview-dicts "D:\\Workspace\\UT_postdoc\\40_experiments\\03_use_geo\\98_tmp_db\\multiview_dicts.list" \
+  --db-name "tmp_finetune_ug1" \
+  --disparity-method "SGM" \
+  --disp-diff-threshold 0.75 \
+  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg,2021-04-23_13-17-25_S2223315_DxO.jpg"

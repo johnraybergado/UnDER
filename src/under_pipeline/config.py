@@ -55,7 +55,7 @@ class UseGeoDataset1Config:
 
     # Multiview setup
     multiview_dict_path: Path | None = None
-    base_image_filter: str | None = "2021-04-23_13-17-22_S2223314_DxO.jpg"
+    base_image_filter: str | None = None  # Comma-separated list of base image filenames
 
     # Derived tmp paths (set in __post_init__)
     tmp_disp_orig: Path | None = None
