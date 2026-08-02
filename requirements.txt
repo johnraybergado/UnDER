@@ -45,3 +45,6 @@ psycopg2-binary>=2.9.0
 # Optional dependencies (uncomment if needed)
 # beautifulsoup4>=4.12.0
 # lxml>=4.9.0
+
+# SGM (Semi-Global Matching) for disparity computation
+pip install pandora[sgm]
