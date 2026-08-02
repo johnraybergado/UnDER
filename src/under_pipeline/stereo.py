@@ -24,7 +24,9 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 import math
+import subprocess
 
+from PIL import Image
 import numpy as np
 from osgeo import gdal  # type: ignore
 from skimage import transform
@@ -110,6 +112,14 @@ def _write_disparity_sgm(
     mask_array : np.ndarray
         Validity mask (H, W), 1 where valid, 0 where invalid.
     """
+    # running sgm on full resolution is horribly slow
+    # manually downscale for now
+    # works with default config: 
+    # subset_width: int = 2880
+    # subset_height: int = 1620
+    DOWNSCALE_FACTOR = 6
+    NAN_FILL = -32
+
     tmp_disp_root.mkdir(parents=True, exist_ok=True)
     sgm_out_dir = tmp_disp_root / "sgm"
     sgm_out_dir.mkdir(parents=True, exist_ok=True)
@@ -117,13 +127,28 @@ def _write_disparity_sgm(
     left_gray_path = tmp_disp_root / f"{base_name}_grayscale_left.tif"
     right_gray_path = tmp_disp_root / f"{base_name}_grayscale_right.tif"
 
+    def downsample_mean(x, F):
+        H, W, C = x.shape
+        x = x[:H - H % F, :W - W % F, :]
+        H, W, C = x.shape
+        return x.reshape(H // F, F, W // F, F, C).mean(axis=(1, 3))
+
+    rect_img1 = np.round(255 * rect_img1).astype(np.uint8)
+    rect_img1 = downsample_mean(rect_img1, DOWNSCALE_FACTOR)
+    rect_img1 = np.round(rect_img1).astype(np.uint8)
+    rect_img2 = np.round(255 * rect_img2).astype(np.uint8)
+    rect_img2 = downsample_mean(rect_img2, DOWNSCALE_FACTOR)
+    rect_img2 = np.round(rect_img2).astype(np.uint8)
     Image.fromarray(rect_img1).convert("L").save(left_gray_path)
     Image.fromarray(rect_img2).convert("L").save(right_gray_path)
 
     command = f"pandora {sgm_config_path} {sgm_out_dir}"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     process.wait()
-    print(process.returncode)
+    # print(process.returncode)
+
+    def upsample_repeat(x, F):
+        return x.repeat(F, axis=0).repeat(F, axis=1)
 
     disp_path = sgm_out_dir / "left_disparity.tif"
     mask_path = sgm_out_dir / "left_validity_mask.tif"
@@ -134,6 +159,11 @@ def _write_disparity_sgm(
     mask_ds = gdal.Open(str(mask_path))
     mask_array = mask_ds.ReadAsArray()
     mask_array = np.where(mask_array == 0, 1, 0).astype(mask_array.dtype)
+
+    disp_array = upsample_repeat(disp_array, DOWNSCALE_FACTOR)
+    disp_array = disp_array * DOWNSCALE_FACTOR
+    disp_array[np.isnan(disp_array)] = NAN_FILL * DOWNSCALE_FACTOR
+    mask_array = upsample_repeat(mask_array, DOWNSCALE_FACTOR)
 
     return disp_array, mask_array
 

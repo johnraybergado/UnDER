@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import warnings
+warnings.simplefilter("ignore", FutureWarning)
 
 from under_pipeline.config import UseGeoDataset1Config
 from under_pipeline.db_client import UnderDbClient
