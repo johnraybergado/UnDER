@@ -1,0 +1,36 @@
+name: under
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - pillow>=10.0.0
+  
+  # PyTorch with CUDA 11.8
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
+  - pytorch-cuda=11.8          # Now the nvidia channel supplies cuda-cudart
+  
+  # Geospatial binaries (compiled for your OS automatically)
+  - gdal>=3.6.0
+  - libtiff>=4.5.0
+  - geopandas>=0.14.0
+  - rasterio>=1.3.0
+  - laspy>=2.0.0
+  
+  # Other Conda packages
+  - pandas>=2.0.0
+  - scikit-image>=0.21.0
+  - psycopg2>=2.9.0
+  - plyfile>=0.8.0
+  - joblib>=1.5.3
+  - matplotlib>=3.8.10
+  
+  # Pip for packages that are not Conda-friendly or need extras
+  - pip
+  - pip:
+    - pandora[sgm]>=1.8.1    # Moved here because conda doesn't support [sgm] extra
+    - -e .                   # Installs your package in development mode

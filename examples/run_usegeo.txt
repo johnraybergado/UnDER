@@ -28,7 +28,7 @@ python -m scripts.run_usegeo_pipeline ^
   --disparity-method "CNN" ^
   --model-path "D:\\Workspace\\UT_postdoc\\80_tools\\00_dronemappy\\dronemappy\\pretrained\\PASMnet_KITTI2015_epoch80.pth" ^
   --disp-diff-threshold 0.75 ^
-  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg,2021-04-23_13-17-28_S2223314_DxO.jpg"
+  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg,2021-04-23_13-17-25_S2223315_DxO.jpg"
 
 # Example 3: Process all images (no filter)
 python -m scripts.run_usegeo_pipeline ^
@@ -50,4 +50,4 @@ python -m scripts.run_usegeo_pipeline ^
   --db-name "tmp_finetune_ug1" ^
   --disparity-method "SGM" ^
   --disp-diff-threshold 0.75 ^
-  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg"
+  --base-image-filter "2021-04-23_13-17-22_S2223314_DxO.jpg,2021-04-23_13-17-25_S2223315_DxO.jpg"

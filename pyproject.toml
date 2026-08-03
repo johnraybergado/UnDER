@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "under_pipeline"
+version = "0.1.0"
+description = "Unsupervised Dense point cloud Extraction Routine"
+readme = "README.md"
+requires-python = ">=3.8"
+# Dependencies are managed by conda/pip, so we leave this empty
+dependencies = []
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["under_pipeline*", "models*", "scripts*"]

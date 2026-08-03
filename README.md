@@ -6,22 +6,63 @@ UnDER is a pipeline for generating dense 3D point clouds from UAV (drone) imager
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.8+ (recommended: 3.11, tested on Windows)
 - PostgreSQL (for database storage)
-- Required Python packages (see `requirements.txt` or `pyproject.toml` if available)
+- NVIDIA GPU with CUDA 11.8 or 12.1 (recommended for deep learning)
+- Required Python packages (see `requirements.txt`)
 
 ### Installation
+
+We provide **two installation options**. 
+
+- **Option A (pip + virtualenv)** is for advanced users who prefer standard Python tooling and are willing to manually install system dependencies.
+- **Option B (conda)** is **strongly recommended** because it automatically handles system-level binaries (GDAL, libtiff, CUDA) across Windows, macOS, and Linux without any extra setup.
+
+#### Option A: Using virtualenv
 
 ```bash
 # Clone the repository
 git clone https://github.com/johnraybergado/UnDER.git
 cd UnDER
 
+# Create and activate a virtual environment
+python -m venv venv
+# Activate the virtualenv:
+# - Windows: venv\Scripts\activate
+# - Mac/Linux: source venv/bin/activate
+
+conda install libtiff=4.5.1
+
+# download gdal wheel
+curl -L -O https://github.com/cgohlke/geospatial-wheels/releases/download/v2023.1.5/GDAL-3.6.2-cp311-cp311-win_amd64.whl
+pip install GDAL-3.6.2-cp311-cp311-win_amd64.whl
+
 # Install dependencies
-pip install -r requirements.txt  # If available
-# Or install in development mode
-pip install -e .
+pip install -r requirements.txt
 ```
+
+#### Option B: Using conda
+
+```bash
+# Clone the repository
+git clone https://github.com/johnraybergado/UnDER.git
+cd UnDER
+
+# Create and activate conda environment
+conda env create -f environment.yml
+conda activate under
+```
+
+#### CUDA Version Notes
+
+The `requirements.txt` includes PyTorch with CUDA 11.8 by default. If you need a different CUDA version, kindly modify the following lines:
+
+```bash
+torch==2.5.1+cu118 ; sys_platform == 'win32' or sys_platform == 'linux'
+torchvision==0.20.1+cu118 ; sys_platform == 'win32' or sys_platform == 'linux'
+torchaudio==2.5.1+cu118 ; sys_platform == 'win32' or sys_platform == 'linux'
+```
+
 
 ### Running the Pipeline
 
@@ -121,8 +162,10 @@ This work builds upon the PASMNet architecture. The original PASMNet implementat
 
 ## Roadmap
 
+- [-] Improve documentation with detailed setup instructions
+- [-] Add benchmarking scripts
 - [ ] Add support for additional datasets
-- [ ] Improve documentation with detailed setup instructions
-- [ ] Add benchmarking scripts
 - [ ] Implement additional disparity refinement methods
 - [ ] Add visualization tools for point cloud inspection
+- [ ] Integrate feature matching step to perform adjustment of orientation parameters
+- [ ] Add semantic layer to the point cloud
