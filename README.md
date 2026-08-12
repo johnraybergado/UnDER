@@ -1,12 +1,14 @@
 # UnDER: Unsupervised Dense point cloud Extraction Routine from UAV imagery using deep learning
 
-UnDER is a pipeline for generating dense 3D point clouds from UAV (drone) imagery using deep learning-based stereo matching. This implementation builds upon the PASMNet architecture for disparity estimation.
+An open-source, actively-developed UAV photogrammetric pipeline in Python. Currently covers stereo rectification, deep-learning-based (and classical SGM) disparity estimation, and multiview triangulation to produce dense point clouds — refactored from the research codebase behind [UnDER](https://www.mdpi.com/2072-4292/17/1/24). The pipeline presently assumes pre-oriented images with known camera parameters; feature matching, relative/absolute orientation refinement, and bundle adjustment are planned for integration. The long-term goal is a complete, usable pipeline from raw UAV imagery through to DSM and orthomosaic generation, with further write-ups and improvements shared as new steps land.
+
+The deep learning-based disparity estimation part builds upon the PASMNet architecture.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+ (recommended: 3.11, tested on Windows)
+- Python 3.8+ (recommended: 3.11)
 - PostgreSQL (for database storage)
 - NVIDIA GPU with CUDA 11.8 or 12.1 (recommended for deep learning)
 - Required Python packages (see `requirements.txt`)
@@ -17,6 +19,8 @@ We provide **two installation options**.
 
 - **Option A (pip + virtualenv)** is for advanced users who prefer standard Python tooling and are willing to manually install system dependencies.
 - **Option B (conda)** is **strongly recommended** because it automatically handles system-level binaries (GDAL, libtiff, CUDA) across Windows, macOS, and Linux without any extra setup.
+
+Specific installation instructions below were specifically tested working on Windows 11 Pro and Lubuntu 26.04 LTS.
 
 #### Option A: Using virtualenv
 
@@ -31,14 +35,40 @@ python -m venv venv
 # - Windows: venv\Scripts\activate
 # - Mac/Linux: source venv/bin/activate
 
+# For Windows
 conda install libtiff=4.5.1
 
+# For Linux/Ubuntu
+# sudo apt update
+# sudo apt install -y libtiff6
+
+# For Mac
+# brew update
+# brew install libtiff
+
+# Install GDAL
+# For Windows
 # download gdal wheel
 curl -L -O https://github.com/cgohlke/geospatial-wheels/releases/download/v2023.1.5/GDAL-3.6.2-cp311-cp311-win_amd64.whl
 pip install GDAL-3.6.2-cp311-cp311-win_amd64.whl
 
-# Install dependencies
+# For Linux/Ubuntu
+# sudo apt install gdal-bin python3-gdal libgdal-dev
+
+# For Mac
+# brew install gdal
+
+# For Linux/Windows: install dependencies
 pip install -r requirements.txt
+
+# For Mac (tested on MacOS 26.6.1): install dependencies
+# brew install libomp
+# pip install -r requirements.txt
+# LIBOMP="$(brew --prefix libomp)" \
+# CXXFLAGS="-I${LIBOMP}/include -Xpreprocessor -fopenmp -Wno-error" LDFLAGS="-L${LIBOMP}/lib -lomp" pip install "pandora[sgm]"
+
+
+pip install -e .
 ```
 
 #### Option B: Using conda
@@ -70,6 +100,9 @@ See `examples/run_usegeo.txt` for example commands to run the pipeline on UseGeo
 
 Basic usage:
 ```bash
+# For Linux (for Windows cmd replace "\" with "^" and for Windows powershell replace "\" with "`")
+cd src
+
 python -m scripts.run_usegeo_pipeline \
   --data-root /path/to/dataset \
   --tmp-root /path/to/tmp_directory \
@@ -78,6 +111,18 @@ python -m scripts.run_usegeo_pipeline \
   --db-name my_database \
   --disparity-method CNN \
   --model-path /path/to/PASMnet_KITTI2015_epoch80.pth
+
+# For Mac when installed via pip (OMP_NUM_THREADS flag NOT needed WITH conda)
+# cd src
+# OMP_NUM_THREADS=1 \
+# python -m scripts.run_usegeo_pipeline \
+#   --data-root /path/to/dataset \
+#   --tmp-root /path/to/tmp_directory \
+#   --las-path /path/to/dataset/DIM_after_adjustment_dataset_C.las \
+#   --multiview-dicts /path/to/multiview_dicts.list \
+#   --db-name my_database \
+#   --disparity-method CNN \
+#   --model-path /path/to/PASMnet_KITTI2015_epoch80.pth
 ```
 
 #### Disparity Methods
@@ -158,12 +203,12 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Acknowledgments
 
-This work builds upon the PASMNet architecture. The original PASMNet implementation can be found at [PASMNet repository](https://github.com/aim-uofa/PASMNet).
+This work builds upon the PASMNet architecture. The original PASMNet implementation can be found at [PASMNet repository](https://github.com/SYSU-SAIL/PAM).
 
 ## Roadmap
 
-- [-] Improve documentation with detailed setup instructions
-- [-] Add benchmarking scripts
+- [X] Improve documentation with detailed setup instructions
+- [ ] Add a notebook going through a detailed example processing a subset of UseGeo
 - [ ] Add support for additional datasets
 - [ ] Implement additional disparity refinement methods
 - [ ] Add visualization tools for point cloud inspection

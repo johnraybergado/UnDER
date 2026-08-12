@@ -371,6 +371,10 @@ def _run_pasmnet_pair(
     mask_array : np.ndarray
         Parallax-attention validity mask (H, W), same size.
     """
+    if device.startswith("cuda") and torch.cuda.is_available():
+        pass
+    else:
+        device = "cpu"
     net = PASMnet().to(device)
     if model_path.endswith("tar"):
         ckpt = torch.load(model_path)["state_dict"]
