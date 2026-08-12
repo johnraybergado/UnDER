@@ -175,8 +175,21 @@ Dataset-Root/
 │   ├── 2021-04-23_13-17-22_S2223314_DxO.jpg
 │   ├── 2021-04-23_13-17-25_S2223315_DxO.jpg
 │   └── ...
-├── DIM_after_adjustment_dataset_C.las  # LAS file with ground points
-└── metric_calibration.txt        # Camera calibration file
+├── DIM_after_adjustment_dataset_C.las  # LAS file to extract mean elevation for basis depth calculation
+└── image_orientations.xyz       # Camera calibration file
+```
+
+A cache folder structure (currently not automatically created) for persisting intermediate results:
+
+```
+- path/to
+  - img/left
+  - img/right
+  - left_disp/orig
+  - left_disp/warp
+  - left_disp/sgm
+  - left_disp/tmp_0
+  - ply
 ```
 
 ### Generating multiview_dicts.list
@@ -197,6 +210,24 @@ Main configuration parameters are defined in `src/under_pipeline/config.py`:
 - `disp_diff_threshold`: Right-left consistency threshold
 - `base_image_filter`: Comma-separated list of base images to process
 
+## Sample Dataset
+
+To reproduce the examples, download the sample dataset from the GitHub Release:
+
+- [UseGeo sample Dataset v1.0.0](https://github.com/johnraybergado/UnDER/releases/tag/v0.1.0)
+
+### Direct asset links
+
+Download: [`refactor_test_subset.zip`](https://github.com/johnraybergado/UnDER/releases/download/v0.1.0/refactor_test_subset.zip).
+
+After downloading, extract the archive:
+
+```bash
+unzip refactor_test_subset.zip -d data/
+```
+
+See [Running the Pipeline](#running-the-pipeline) and [`examples/run_usegeo.txt`](https://github.com/johnraybergado/UnDER/blob/1035aec16cedfcfdd3b658416604c2e0989fc7f9/examples/run_usegeo.txt) on how to run UnDER using the above sample dataset.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
@@ -209,8 +240,10 @@ This work builds upon the PASMNet architecture. The original PASMNet implementat
 
 - [X] Improve documentation with detailed setup instructions
 - [ ] Add a notebook going through a detailed example processing a subset of UseGeo
+- [ ] Add integration tests
 - [ ] Add support for additional datasets
-- [ ] Implement additional disparity refinement methods
-- [ ] Add visualization tools for point cloud inspection
+- [ ] Integrate additional disparity estimation models besides PASMNet
+- [ ] Add gap filling and built-in point cloud filtering refinement methods
 - [ ] Integrate feature matching step to perform adjustment of orientation parameters
+- [ ] Implement orthomosaic and DSM generation
 - [ ] Add semantic layer to the point cloud
