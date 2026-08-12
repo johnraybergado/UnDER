@@ -43,3 +43,6 @@ Thumbs.db
 # Local env / secrets
 .env
 .env.*
+
+# stubs
+src/typings

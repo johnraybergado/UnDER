@@ -214,7 +214,7 @@ Main configuration parameters are defined in `src/under_pipeline/config.py`:
 
 To reproduce the examples, download the sample dataset from the GitHub Release:
 
-- [UseGeo sample Dataset v1.0.0](https://github.com/johnraybergado/UnDER/releases/tag/v0.1.0)
+- [UseGeo sample data subset v0.1.0](https://github.com/johnraybergado/UnDER/releases/tag/v0.1.0)
 
 ### Direct asset links
 
@@ -226,7 +226,7 @@ After downloading, extract the archive:
 unzip refactor_test_subset.zip -d data/
 ```
 
-See [Running the Pipeline](#running-the-pipeline) and [`examples/run_usegeo.txt`](https://github.com/johnraybergado/UnDER/blob/1035aec16cedfcfdd3b658416604c2e0989fc7f9/examples/run_usegeo.txt) on how to run UnDER using the above sample dataset.
+See [Running the Pipeline](#running-the-pipeline) and [`examples/run_usegeo.txt`](https://github.com/johnraybergado/UnDER/blob/cd5291e6e3c8ec345755bf5a7281354e2b3778a7/examples/run_usegeo.txt) on how to run UnDER using the above sample dataset.
 
 ## License
 
