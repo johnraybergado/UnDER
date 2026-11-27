@@ -266,7 +266,7 @@ def populate_globals_table(
 
 def init_db(
     db_name: str,
-    data_root: str,
+    orientation_path: str,
     img_dir: str,
     las_path: str,
     start_time: float,
@@ -315,9 +315,8 @@ def init_db(
 
     create_db_tables(db_name)
 
-    metric_calib = os.path.join(data_root, "image_orientations.xyz")
     img_params = init_img_params(
-        metric_calib, img_dir, las_path, downsample_factor, start_time
+        orientation_path, img_dir, las_path, downsample_factor, start_time
     )
     estimated_gsd = estimate_GSD(img_params)
 

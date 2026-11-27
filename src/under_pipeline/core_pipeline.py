@@ -52,7 +52,7 @@ class UnderReconstructionPipeline:
         """
         self._start_time = time.time()
         self.db.initialize(
-            data_root=str(self.config.data_root),
+            orientation_path=str(self.config.orientation_path),
             img_dir=str(self.config.img_dir),
             las_path=str(self.config.las_path),
             downsample_factor=self.config.downsample_factor,

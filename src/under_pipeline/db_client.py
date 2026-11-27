@@ -37,7 +37,7 @@ class UnderDbClient:
 
     def initialize(
         self,
-        data_root: str,
+        orientation_path: str,
         img_dir: str,
         las_path: str,
         downsample_factor: int,
@@ -49,7 +49,7 @@ class UnderDbClient:
         """
         core_init_db(
             self.db_name,
-            data_root,
+            orientation_path,
             img_dir,
             las_path,
             start_time,
