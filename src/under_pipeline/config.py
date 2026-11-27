@@ -57,6 +57,10 @@ class UseGeoDataset1Config:
     multiview_dict_path: Path | None = None
     base_image_filter: str | None = None  # Comma-separated list of base image filenames
 
+    # Image orientation / calibration file (per-image X/Y/Z + rotation)
+    orientation_filename: str = "image_orientations.xyz"  # name of the file, under data_root
+    orientation_path: Path | None = None  # derived in __post_init__: data_root / orientation_filename
+
     # Derived tmp paths (set in __post_init__)
     tmp_disp_orig: Path | None = None
     tmp_disp_warp: Path | None = None
@@ -65,6 +69,8 @@ class UseGeoDataset1Config:
     sgm_config_path: Path | None = None
 
     def __post_init__(self) -> None:
+        if self.orientation_path is None:
+            self.orientation_path = self.data_root / self.orientation_filename
         if self.tmp_disp_orig is None:
             self.tmp_disp_orig = self.tmp_root / "left_disp" / "orig"
         if self.tmp_disp_warp is None:
